@@ -5,6 +5,7 @@ import WorkspaceMember from '@/lib/models/WorkspaceMember';
 import Workspace from '@/lib/models/Workspace';
 import User from '@/lib/models/User';
 import Company from '@/lib/models/Company';
+import Invitation from '@/lib/models/Invitation';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_multi_tenant_workspace_key_2026';
 
@@ -170,6 +171,7 @@ export async function getAccessibleWorkspaces(user) {
       // Company admins already have access; a pending invite is meaningless for them
       if (!admin) {
         invitations.push({
+          source: 'membership',
           id: m._id,
           workspaceId: m.workspace._id,
           name: m.workspace.name,
@@ -187,6 +189,29 @@ export async function getAccessibleWorkspaces(user) {
         description: m.workspace.description,
         role: m.role,
         createdAt: m.workspace.createdAt,
+      });
+    }
+  }
+
+  // Token-based invitations addressed to this user's email (scoped to their company)
+  if (user.company) {
+    const pendingInvites = await Invitation.find({
+      company: user.company,
+      email: user.email,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    }).populate('workspace', 'name');
+
+    for (const inv of pendingInvites) {
+      if (!inv.workspace) continue;
+      if (admin) continue; // admins already have every company workspace
+      invitations.push({
+        source: 'invitation',
+        id: inv._id,
+        workspaceId: inv.workspace._id,
+        name: inv.workspace.name,
+        role: inv.role,
+        invitedAt: inv.createdAt,
       });
     }
   }

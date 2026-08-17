@@ -97,17 +97,17 @@ export default function WorkspacesPage() {
       setSubmittingInvite(true);
       setInviteError('');
       setInviteNotice('');
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/members`, {
+      const res = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole, workspaceId: selectedWorkspace.id }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send invitation');
 
       setInviteEmail('');
-      setInviteNotice(`Invitation sent to ${inviteEmail}.`);
+      setInviteNotice(`Invitation sent to ${data.invitation?.email || inviteEmail}.`);
       fetchWorkspaceMembers(selectedWorkspace.id);
     } catch (err) {
       setInviteError(err.message);

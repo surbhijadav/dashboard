@@ -1,17 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { Building2, Lock, Mail, ArrowRight, ShieldCheck, Key } from 'lucide-react';
 
-export default function LoginPage() {
+// Only allow internal relative redirects (open-redirect protection)
+function safeRedirect(value) {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+  return value;
+}
+
+function LoginInner() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = safeRedirect(searchParams.get('redirect'));
   const { refreshWorkspaces } = useWorkspace();
 
   const handleLogin = async (e) => {
@@ -31,7 +39,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
       await refreshWorkspaces();
-      router.push('/dashboard');
+      router.push(redirectTo || '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,7 +61,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         await refreshWorkspaces();
-        router.push('/dashboard');
+        router.push(redirectTo || '/dashboard');
       } else {
         const data = await res.json();
         setError(data.error || 'Demo login failed');
@@ -171,5 +179,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }

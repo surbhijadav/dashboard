@@ -145,20 +145,30 @@ export default function DashboardPage() {
     };
   }, [user?.id]);
 
-  const handleInvitation = async (workspaceId, action) => {
-    setActing(workspaceId);
+  const handleInvitation = async (inv, action) => {
+    setActing(inv.workspaceId);
     try {
-      await fetch(`/api/workspaces/${workspaceId}/members`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
+      if (inv.source === 'invitation') {
+        await fetch(`/api/invitations/${inv.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+      } else {
+        await fetch(`/api/workspaces/${inv.workspaceId}/members`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+      }
       await refreshWorkspaces();
       setData((prev) =>
         prev
           ? {
               ...prev,
-              invitations: prev.invitations.filter((i) => i.workspaceId !== workspaceId),
+              invitations: prev.invitations.filter(
+                (i) => (i.source === 'invitation' ? i.id : i.workspaceId) !== (inv.source === 'invitation' ? inv.id : inv.workspaceId)
+              ),
             }
           : prev
       );
@@ -230,14 +240,14 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <button
-                      onClick={() => handleInvitation(inv.workspaceId, 'decline')}
+                      onClick={() => handleInvitation(inv, 'decline')}
                       disabled={acting === inv.workspaceId}
                       className="btn-secondary h-8"
                     >
                       <X className="h-3.5 w-3.5" /> Decline
                     </button>
                     <button
-                      onClick={() => handleInvitation(inv.workspaceId, 'accept')}
+                      onClick={() => handleInvitation(inv, 'accept')}
                       disabled={acting === inv.workspaceId}
                       className="btn-primary h-8"
                     >

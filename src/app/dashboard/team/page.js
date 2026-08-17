@@ -12,6 +12,12 @@ import {
   ShieldOff,
   Trash2,
   Mail,
+  Send,
+  Copy,
+  Ban,
+  CheckCircle2,
+  Clock,
+  XCircle,
 } from 'lucide-react';
 
 function RoleBadge({ role }) {
@@ -27,6 +33,23 @@ function RoleBadge({ role }) {
       }`}
     >
       {role}
+    </span>
+  );
+}
+
+function InviteStatusBadge({ status, acceptedAt }) {
+  const map = {
+    pending: { label: 'Pending', cls: 'bg-warning/10 text-warning-text', Icon: Clock },
+    accepted: { label: 'Accepted', cls: 'bg-success/10 text-success-text', Icon: CheckCircle2 },
+    expired: { label: 'Expired', cls: 'bg-hover text-ink-muted', Icon: XCircle },
+    cancelled: { label: 'Cancelled', cls: 'bg-hover text-ink-muted', Icon: Ban },
+    declined: { label: 'Declined', cls: 'bg-hover text-ink-muted', Icon: XCircle },
+  };
+  const s = map[status] || map.pending;
+  return (
+    <span className={`inline-flex h-5 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium ${s.cls}`}>
+      <s.Icon className="h-3 w-3" /> {s.label}
+      {status === 'accepted' && acceptedAt ? ` ${formatDate(acceptedAt)}` : ''}
     </span>
   );
 }
@@ -55,8 +78,9 @@ const inputClass =
   'h-10 w-full rounded-lg border border-line bg-app px-3 text-[15px] text-ink placeholder:text-ink-muted transition-colors duration-150 focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/15';
 
 export default function TeamPage() {
-  const { user, isCompanyAdmin, currentWorkspace, refreshWorkspaces } = useWorkspace();
+  const { user, isCompanyAdmin, workspaces, currentWorkspace, refreshWorkspaces } = useWorkspace();
   const [members, setMembers] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [companyMembers, setCompanyMembers] = useState([]);
   const [companyLoaded, setCompanyLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -65,6 +89,7 @@ export default function TeamPage() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('editor');
+  const [inviteWorkspaceId, setInviteWorkspaceId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -72,7 +97,6 @@ export default function TeamPage() {
   const [roleFilter, setRoleFilter] = useState('all');
 
   const canManage = isCompanyAdmin || currentWorkspace?.role === 'admin';
-  const pendingInvites = members.filter((m) => m.status === 'pending');
   const acceptedMembers = members.filter((m) => m.status !== 'pending');
 
   useEffect(() => {
@@ -131,17 +155,52 @@ export default function TeamPage() {
     }
   };
 
+  const reloadInvitations = async () => {
+    if (!currentWorkspace?.id) return;
+    try {
+      const res = await fetch(`/api/invitations?workspaceId=${currentWorkspace.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInvitations(data.invitations || []);
+      }
+    } catch (e) {
+      console.error('Failed to load invitations:', e);
+    }
+  };
+
+  // Keep the invite modal's workspace preselected with the active workspace
+  const effectiveWorkspaceId = inviteWorkspaceId || currentWorkspace?.id?.toString() || '';
+
+  useEffect(() => {
+    if (tab !== 'invitations' || !currentWorkspace?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/invitations?workspaceId=${currentWorkspace.id}`);
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setInvitations(data.invitations || []);
+        }
+      } catch (e) {
+        console.error('Failed to load invitations:', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, currentWorkspace?.id]);
+
   const handleInvite = async (e) => {
     e.preventDefault();
-    if (!email || !currentWorkspace) return;
+    if (!email || !effectiveWorkspaceId) return;
 
     try {
       setSubmitting(true);
       setError('');
-      const res = await fetch(`/api/workspaces/${currentWorkspace.id}/members`, {
+      const res = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, role }),
+        body: JSON.stringify({ email, name, role, workspaceId: effectiveWorkspaceId }),
       });
 
       const data = await res.json();
@@ -149,14 +208,58 @@ export default function TeamPage() {
 
       setEmail('');
       setName('');
+      setInviteWorkspaceId('');
       setInviteOpen(false);
-      setNotice(`Invitation sent to ${data.member?.user?.email || email}.`);
-      await reloadMembers();
-      await refreshWorkspaces();
+      setNotice(`Invitation sent to ${data.invitation?.email || email}`);
+      setTimeout(() => setNotice(''), 5000);
+      await reloadInvitations();
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResend = async (inv) => {
+    try {
+      const res = await fetch(`/api/invitations/${inv.id}/resend`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resend invitation');
+      setNotice(data.message || `Invitation resent to ${inv.email}`);
+      setTimeout(() => setNotice(''), 5000);
+      await reloadInvitations();
+    } catch (e) {
+      setNotice(e.message);
+      setTimeout(() => setNotice(''), 5000);
+    }
+  };
+
+  const handleCancelInvitation = async (inv) => {
+    if (!confirm(`Cancel the invitation for ${inv.email}? Their link will stop working.`)) return;
+    try {
+      const res = await fetch(`/api/invitations/${inv.id}/cancel`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel invitation');
+      setNotice(`Invitation for ${inv.email} cancelled`);
+      setTimeout(() => setNotice(''), 5000);
+      await reloadInvitations();
+    } catch (e) {
+      setNotice(e.message);
+      setTimeout(() => setNotice(''), 5000);
+    }
+  };
+
+  const handleCopyLink = async (inv) => {
+    try {
+      const res = await fetch(`/api/invitations/${inv.id}/link`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to get invitation link');
+      await navigator.clipboard.writeText(data.url);
+      setNotice('Invitation link copied to clipboard');
+      setTimeout(() => setNotice(''), 5000);
+    } catch (e) {
+      setNotice(e.message);
+      setTimeout(() => setNotice(''), 5000);
     }
   };
 
@@ -205,9 +308,11 @@ export default function TeamPage() {
     return matchesRole && matchesQuery;
   });
 
+  const pendingInvitationCount = invitations.filter((i) => i.status === 'pending').length;
+
   const tabs = [
     { key: 'members', label: `Workspace Members · ${acceptedMembers.length}` },
-    { key: 'invitations', label: `Invitations · ${pendingInvites.length}` },
+    { key: 'invitations', label: `Invitations · ${pendingInvitationCount}` },
     { key: 'company', label: 'Company Members' },
   ];
 
@@ -392,46 +497,86 @@ export default function TeamPage() {
 
       {/* ===== Invitations tab ===== */}
       {tab === 'invitations' && (
-        <section aria-label="Pending invitations">
+        <section aria-label="Workspace invitations">
           <p className="eyebrow mb-3 text-ink-muted">
-            Pending invitations · {pendingInvites.length}
+            Invitations · {invitations.length} ({pendingInvitationCount} pending)
           </p>
           <div className="overflow-hidden rounded-xl border border-line bg-surface">
-            {pendingInvites.length === 0 ? (
+            <div className="hidden grid-cols-[minmax(0,1fr)_90px_130px_minmax(0,120px)_90px_130px] items-center gap-x-3 border-b border-line px-4 md:grid">
+              <span className="eyebrow py-2.5 text-ink-muted">Email</span>
+              <span className="eyebrow text-ink-muted">Role</span>
+              <span className="eyebrow text-ink-muted">Status</span>
+              <span className="eyebrow text-ink-muted">Invited By</span>
+              <span className="eyebrow text-ink-muted">Sent</span>
+              <span className="eyebrow text-right text-ink-muted">Actions</span>
+            </div>
+
+            {invitations.length === 0 ? (
               <div className="px-6 py-14 text-center">
-                <p className="text-[15px] font-medium text-ink-secondary">No pending invitations</p>
+                <p className="text-[15px] font-medium text-ink-secondary">No invitations yet</p>
                 <p className="mt-1 text-[15px] text-ink-muted">
-                  Invitations you send to this workspace will appear here until accepted.
+                  Invitations you send to this workspace will appear here with their status.
                 </p>
               </div>
             ) : (
               <ul className="m-0 list-none p-0">
-                {pendingInvites.map((m) => (
+                {invitations.map((inv) => (
                   <li
-                    key={m._id}
-                    className="group flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3 last:border-b-0 hover:bg-hover/50 md:h-14"
+                    key={inv.id}
+                    className="grid grid-cols-1 gap-x-3 gap-y-2 border-b border-line px-4 py-3.5 last:border-b-0 hover:bg-hover/50 md:grid-cols-[minmax(0,1fr)_90px_130px_minmax(0,120px)_90px_130px] md:items-center"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-elevated text-[15px] font-medium text-ink-secondary">
-                      {m.user?.name ? m.user.name.charAt(0).toUpperCase() : 'U'}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-elevated text-[15px] font-medium text-ink-secondary">
+                        <Mail className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-medium text-ink">{inv.invitedName || inv.email}</p>
+                        <p className="truncate text-sm text-ink-muted">
+                          {inv.email}
+                          {inv.status === 'pending' && (
+                            <span className="text-ink-muted"> · expires {formatDate(inv.expiresAt)}</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-medium text-ink">
-                        {m.user?.name || 'User'}
-                      </p>
-                      <p className="truncate text-sm text-ink-muted">{m.user?.email}</p>
+
+                    <RoleBadge role={inv.role} />
+                    <InviteStatusBadge status={inv.status} acceptedAt={inv.acceptedAt} />
+                    <span className="truncate text-sm text-ink-secondary">{inv.invitedBy}</span>
+                    <span className="text-sm text-ink-muted">{formatDate(inv.sent)}</span>
+
+                    <div className="flex items-center justify-end gap-1">
+                      {canManage && ['pending', 'expired'].includes(inv.status) && (
+                        <button
+                          onClick={() => handleResend(inv)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-hover hover:text-ink"
+                          aria-label={`Resend invitation to ${inv.email}`}
+                          title="Resend invitation"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canManage && inv.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleCopyLink(inv)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-hover hover:text-ink"
+                            aria-label={`Copy invitation link for ${inv.email}`}
+                            title="Copy invitation link"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvitation(inv)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger-text"
+                            aria-label={`Cancel invitation for ${inv.email}`}
+                            title="Cancel invitation"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
-                    <RoleBadge role={m.role} />
-                    <span className="text-sm text-ink-muted">Invited {formatDate(m.createdAt)}</span>
-                    {canManage && (
-                      <button
-                        onClick={() => handleRevoke(m.user?._id, true)}
-                        aria-label={`Revoke invitation for ${m.user?.email || 'user'}`}
-                        title="Revoke invitation"
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger-text"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -589,6 +734,27 @@ export default function TeamPage() {
                   <option value="editor">Editor — create & edit</option>
                   <option value="viewer">Viewer — read only</option>
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="invite-workspace" className="mb-1.5 block text-sm font-medium text-ink-secondary">
+                  Workspace
+                </label>
+                <select
+                  id="invite-workspace"
+                  value={effectiveWorkspaceId}
+                  onChange={(e) => setInviteWorkspaceId(e.target.value)}
+                  className={`${inputClass} appearance-none`}
+                >
+                  {workspaces.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[13px] text-ink-muted">
+                  They&rsquo;ll gain access only to this workspace after accepting.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 border-t border-line pt-4">
