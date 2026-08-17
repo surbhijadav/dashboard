@@ -127,34 +127,43 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-slate-800/80 space-y-2.5">
-          <div className="text-center text-xs text-slate-400 font-semibold mb-2 flex items-center justify-center gap-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Test Per-Workspace Permissions:
+          <div className="text-center text-xs text-ink-muted font-medium mb-2 flex items-center justify-center gap-1">
+            <ShieldCheck className="w-4 h-4 text-success-text" /> Demo accounts (per-workspace permissions)
           </div>
 
           <div className="space-y-2">
             <button
               onClick={() => handleQuickDemoLogin('admin@company1.com')}
               type="button"
-              className="w-full py-2.5 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-semibold text-xs transition flex items-center justify-between"
+              className="w-full py-2.5 px-3 rounded-lg bg-accent/10 hover:bg-accent/15 border border-accent/25 text-accent-bright font-medium text-xs transition flex items-center justify-between"
             >
-              <span>👑 Company Admin</span>
-              <span className="text-[10px] text-slate-400">Access: Alpha & Beta Workspaces</span>
+              <span>Company Admin</span>
+              <span className="text-[10px] text-ink-muted">Access: Alpha & Beta</span>
             </button>
 
             <button
               onClick={() => handleQuickDemoLogin('alex@company1.com')}
               type="button"
-              className="w-full py-2.5 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 font-semibold text-xs transition flex items-center justify-between"
+              className="w-full py-2.5 px-3 rounded-lg bg-hover hover:bg-line border border-line text-ink-secondary font-medium text-xs transition flex items-center justify-between"
             >
-              <span>👤 Developer Alex</span>
-              <span className="text-[10px] text-slate-400">Access: Workspace Alpha ONLY</span>
+              <span>Employee · Alex</span>
+              <span className="text-[10px] text-ink-muted">Access: Alpha only</span>
+            </button>
+
+            <button
+              onClick={() => handleQuickDemoLogin('maria@company1.com')}
+              type="button"
+              className="w-full py-2.5 px-3 rounded-lg bg-hover hover:bg-line border border-line text-ink-secondary font-medium text-xs transition flex items-center justify-between"
+            >
+              <span>Employee · Maria</span>
+              <span className="text-[10px] text-ink-muted">Pending invitation</span>
             </button>
           </div>
 
           <div className="pt-3 text-center">
             <p className="text-xs text-slate-400">
               Need a new company account?{' '}
-              <Link href="/register" className="text-blue-400 hover:underline font-semibold">
+              <Link href="/register" className="text-accent-bright hover:underline font-medium">
                 Register Company
               </Link>
             </p>

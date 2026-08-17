@@ -23,6 +23,11 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
     },
+    companyRole: {
+      type: String,
+      enum: ['admin', 'employee'],
+      default: 'employee',
+    },
     currentWorkspace: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workspace',

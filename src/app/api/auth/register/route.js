@@ -23,11 +23,12 @@ export async function POST(req) {
 
     const hashedPassword = await hashPassword(password);
 
-    // 1. Create User
+    // 1. Create User — the registering user becomes the company ADMIN
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      companyRole: 'admin',
     });
 
     // 2. Create Company

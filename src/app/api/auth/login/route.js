@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
-import WorkspaceMember from '@/lib/models/WorkspaceMember';
-import Company from '@/lib/models/Company';
-import { comparePassword, signToken } from '@/lib/auth';
+import { comparePassword, signToken, getAccessibleWorkspaces, isCompanyAdmin } from '@/lib/auth';
 
 export async function POST(req) {
   try {
@@ -24,20 +22,12 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Workspaces this specific user has access to
-    const memberships = await WorkspaceMember.find({ user: user._id }).populate('workspace');
-    const workspaces = memberships
-      .filter((m) => m.workspace !== null)
-      .map((m) => ({
-        id: m.workspace._id,
-        name: m.workspace.name,
-        slug: m.workspace.slug,
-        description: m.workspace.description,
-        role: m.role,
-      }));
+    const { workspaces, invitations } = await getAccessibleWorkspaces(user);
 
     let currentWorkspaceId = user.currentWorkspace;
-    const isValidWorkspace = workspaces.some((w) => w.id.toString() === currentWorkspaceId?.toString());
+    const isValidWorkspace = workspaces.some(
+      (w) => w.id.toString() === currentWorkspaceId?.toString()
+    );
 
     if (!isValidWorkspace && workspaces.length > 0) {
       currentWorkspaceId = workspaces[0].id;
@@ -58,9 +48,11 @@ export async function POST(req) {
         name: user.name,
         email: user.email,
         companyName: user.company?.name || 'Company',
+        companyRole: isCompanyAdmin(user, user.company) ? 'admin' : 'employee',
         currentWorkspace: currentWorkspaceId,
       },
       workspaces,
+      invitations,
     });
 
     response.cookies.set('token', token, {

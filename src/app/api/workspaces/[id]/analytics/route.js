@@ -4,7 +4,7 @@ import Project from '@/lib/models/Project';
 import Task from '@/lib/models/Task';
 import WorkspaceMember from '@/lib/models/WorkspaceMember';
 import ActivityLog from '@/lib/models/ActivityLog';
-import { getAuthUser, verifyWorkspaceMemberAccess } from '@/lib/auth';
+import { getAuthUser, authorizeWorkspaceAccess } from '@/lib/auth';
 
 export async function GET(req, { params }) {
   try {
@@ -14,13 +14,10 @@ export async function GET(req, { params }) {
 
     const { id: workspaceId } = await params;
 
-    // Per-workspace permission check
-    const membership = await verifyWorkspaceMemberAccess(workspaceId, authUser.userId);
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Access Denied: You do not have permission to view this workspace\'s analytics.' },
-        { status: 403 }
-      );
+    // Per-workspace permission check (company admin or accepted member)
+    const access = await authorizeWorkspaceAccess(workspaceId, authUser.userId, 'viewer');
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const projects = await Project.find({ workspace: workspaceId });

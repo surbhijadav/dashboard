@@ -3,44 +3,78 @@ import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import Workspace from '@/lib/models/Workspace';
 import WorkspaceMember from '@/lib/models/WorkspaceMember';
+import Project from '@/lib/models/Project';
+import Task from '@/lib/models/Task';
 import ActivityLog from '@/lib/models/ActivityLog';
-import { getAuthUser, slugify } from '@/lib/auth';
+import { getAuthUser, slugify, getAccessibleWorkspaces, isCompanyAdmin } from '@/lib/auth';
 
-// GET workspaces available to current logged-in user
+// GET workspaces available to the current user, with usage counts
 export async function GET() {
   try {
     await dbConnect();
     const authUser = await getAuthUser();
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const memberships = await WorkspaceMember.find({ user: authUser.userId }).populate('workspace');
-    const workspaces = memberships
-      .filter((m) => m.workspace !== null)
-      .map((m) => ({
-        id: m.workspace._id,
-        name: m.workspace.name,
-        slug: m.workspace.slug,
-        description: m.workspace.description,
-        role: m.role,
-        createdAt: m.workspace.createdAt,
-      }));
+    const user = await User.findById(authUser.userId);
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    return NextResponse.json({ workspaces });
+    const { workspaces } = await getAccessibleWorkspaces(user);
+
+    // Enrich with member / project / task counts
+    const ids = workspaces.map((w) => w.id);
+    const [memberCounts, projectCounts, taskCounts] = ids.length
+      ? await Promise.all([
+          WorkspaceMember.aggregate([
+            { $match: { workspace: { $in: ids }, status: 'accepted' } },
+            { $group: { _id: '$workspace', count: { $sum: 1 } } },
+          ]),
+          Project.aggregate([
+            { $match: { workspace: { $in: ids } } },
+            { $group: { _id: '$workspace', count: { $sum: 1 } } },
+          ]),
+          Task.aggregate([
+            { $match: { workspace: { $in: ids } } },
+            { $group: { _id: '$workspace', count: { $sum: 1 } } },
+          ]),
+        ])
+      : [[], [], []];
+
+    const toMap = (rows) => new Map(rows.map((r) => [r._id.toString(), r.count]));
+    const memberMap = toMap(memberCounts);
+    const projectMap = toMap(projectCounts);
+    const taskMap = toMap(taskCounts);
+
+    const enriched = workspaces.map((w) => ({
+      ...w,
+      memberCount: memberMap.get(w.id.toString()) || 0,
+      projectCount: projectMap.get(w.id.toString()) || 0,
+      taskCount: taskMap.get(w.id.toString()) || 0,
+    }));
+
+    return NextResponse.json({ workspaces: enriched });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST create a new workspace inside the user's Company
+// POST create a new workspace inside the user's Company (company admins only)
 export async function POST(req) {
   try {
     await dbConnect();
     const authUser = await getAuthUser();
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await User.findById(authUser.userId);
+    const user = await User.findById(authUser.userId).populate('company');
     if (!user || !user.company) {
       return NextResponse.json({ error: 'Company account required to create workspaces' }, { status: 400 });
+    }
+
+    // Only company admins may create workspaces
+    if (!isCompanyAdmin(user, user.company)) {
+      return NextResponse.json(
+        { error: 'Access Denied: Only company admins can create workspaces.' },
+        { status: 403 }
+      );
     }
 
     const { name, description } = await req.json();
@@ -51,7 +85,7 @@ export async function POST(req) {
 
     // Create Workspace inside the Company
     const workspace = await Workspace.create({
-      company: user.company,
+      company: user.company._id,
       name,
       slug,
       description: description || '',
@@ -61,9 +95,10 @@ export async function POST(req) {
     // Grant Admin permission to creator for this specific workspace
     await WorkspaceMember.create({
       workspace: workspace._id,
-      company: user.company,
+      company: user.company._id,
       user: authUser.userId,
       role: 'admin',
+      status: 'accepted',
     });
 
     await User.findByIdAndUpdate(authUser.userId, { currentWorkspace: workspace._id });

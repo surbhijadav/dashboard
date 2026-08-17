@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/lib/models/Project';
 import ActivityLog from '@/lib/models/ActivityLog';
-import { getAuthUser, verifyWorkspaceMemberAccess } from '@/lib/auth';
+import { getAuthUser, authorizeWorkspaceAccess } from '@/lib/auth';
 
 export async function GET(req, { params }) {
   try {
@@ -12,12 +12,9 @@ export async function GET(req, { params }) {
 
     const { id: workspaceId } = await params;
 
-    const membership = await verifyWorkspaceMemberAccess(workspaceId, authUser.userId);
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Access Denied: You do not have permission to access this workspace.' },
-        { status: 403 }
-      );
+    const access = await authorizeWorkspaceAccess(workspaceId, authUser.userId, 'viewer');
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const projects = await Project.find({ workspace: workspaceId }).sort({ createdAt: -1 });
@@ -36,12 +33,9 @@ export async function POST(req, { params }) {
 
     const { id: workspaceId } = await params;
 
-    const membership = await verifyWorkspaceMemberAccess(workspaceId, authUser.userId);
-    if (!membership || (membership.role !== 'admin' && membership.role !== 'editor')) {
-      return NextResponse.json(
-        { error: 'Access Denied: Insufficient workspace permissions.' },
-        { status: 403 }
-      );
+    const access = await authorizeWorkspaceAccess(workspaceId, authUser.userId, 'editor');
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const { name, description, budget, status, dueDate } = await req.json();

@@ -4,14 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { Building2, X, Plus } from 'lucide-react';
 
-export default function CreateWorkspaceModal({ isOpen, onClose }) {
+export default function CreateWorkspaceModal({ isOpen, onClose, onCreated }) {
   const { refreshWorkspaces, switchWorkspace } = useWorkspace();
   const [name, setName] = useState('');
-  const [plan, setPlan] = useState('Pro');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Close with Escape
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e) => {
@@ -33,7 +32,7 @@ export default function CreateWorkspaceModal({ isOpen, onClose }) {
       const res = await fetch('/api/workspaces', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), plan }),
+        body: JSON.stringify({ name: name.trim(), description: description.trim() }),
       });
 
       const data = await res.json();
@@ -46,6 +45,8 @@ export default function CreateWorkspaceModal({ isOpen, onClose }) {
         switchWorkspace(data.workspace.id);
       }
       setName('');
+      setDescription('');
+      onCreated?.();
       onClose();
     } catch (err) {
       setError(err.message);
@@ -72,12 +73,12 @@ export default function CreateWorkspaceModal({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-ink">Create workspace</h2>
-              <p className="text-[13px] text-ink-secondary">A dedicated space for your company</p>
+              <p className="text-[13px] text-ink-secondary">A dedicated space inside your company</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="-mr-1 -mt-1 flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-white/5 hover:text-ink"
+            className="-mr-1 -mt-1 flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition-colors duration-150 hover:bg-hover hover:text-ink"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -93,13 +94,13 @@ export default function CreateWorkspaceModal({ isOpen, onClose }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="ws-name" className="mb-1.5 block text-xs font-medium text-ink-secondary">
-              Company / workspace name
+              Workspace name
             </label>
             <input
               id="ws-name"
               type="text"
               required
-              placeholder="e.g. Acme Corp, Enterprise Inc."
+              placeholder="e.g. Marketing, Development, HR"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={inputClass}
@@ -107,24 +108,17 @@ export default function CreateWorkspaceModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <span className="mb-1.5 block text-xs font-medium text-ink-secondary">Workspace plan</span>
-            <div className="grid grid-cols-3 gap-2">
-              {['Free', 'Pro', 'Enterprise'].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPlan(p)}
-                  aria-pressed={plan === p}
-                  className={`h-9 rounded-lg border text-[13px] font-medium transition-colors duration-150 ${
-                    plan === p
-                      ? 'border-accent/40 bg-accent/10 text-accent-bright'
-                      : 'border-line bg-surface text-ink-secondary hover:border-line-bright hover:text-ink'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+            <label htmlFor="ws-description" className="mb-1.5 block text-xs font-medium text-ink-secondary">
+              Description <span className="font-normal text-ink-muted">(optional)</span>
+            </label>
+            <textarea
+              id="ws-description"
+              rows={3}
+              placeholder="What is this workspace for?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full resize-none rounded-lg border border-line bg-app px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted transition-colors duration-150 focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/15"
+            />
           </div>
 
           <div className="flex justify-end gap-2 border-t border-line pt-4">

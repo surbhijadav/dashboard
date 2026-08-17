@@ -87,17 +87,17 @@ export default function ProjectsPage() {
     : tasks.filter((t) => t.project?._id === selectedProject);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-8 animate-fadeIn">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-7 rounded-3xl border border-slate-800">
         <div>
-          <div className="flex items-center gap-2 text-ink-muted text-[11px] font-medium uppercase tracking-[0.08em] mb-1">
+          <div className="flex items-center gap-2 text-ink-muted text-xs font-medium uppercase tracking-[0.08em] mb-1">
             <KanbanSquare className="w-3.5 h-3.5" /> Workspace Projects & Tasks
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          <h1 className="text-[34px] font-semibold tracking-tight text-ink">
             {currentWorkspace?.name || 'Workspace'} Kanban Board
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="mt-1 text-[17px] text-ink-secondary">
             Manage projects, move tasks across status workflows in real-time
           </p>
         </div>
@@ -115,11 +115,11 @@ export default function ProjectsPage() {
       {/* Filter Bar */}
       <div className="flex items-center gap-3 glass-card p-3 rounded-2xl border border-slate-800">
         <Filter className="w-4 h-4 text-slate-400 ml-2" />
-        <span className="text-xs font-semibold text-slate-300">Filter by Project:</span>
+        <span className="text-sm font-semibold text-slate-300">Filter by Project:</span>
         <select
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
-          className="px-3 py-1.5 glass-input rounded-xl text-xs bg-slate-900 focus:ring-1 focus:ring-blue-500"
+          className="px-3 py-1.5 glass-input rounded-xl text-sm bg-slate-900 focus:ring-1 focus:ring-blue-500"
         >
           <option value="all">All Projects ({tasks.length} tasks)</option>
           {projects.map((p) => (
@@ -132,7 +132,7 @@ export default function ProjectsPage() {
 
       {/* Kanban Board Container */}
       {loading ? (
-        <div className="py-20 text-center text-xs text-slate-500">
+        <div className="py-20 text-center text-sm text-slate-500">
           Loading workspace task board...
         </div>
       ) : (

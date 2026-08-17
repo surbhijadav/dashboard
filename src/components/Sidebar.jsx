@@ -20,12 +20,19 @@ import {
   X,
 } from 'lucide-react';
 
-const mainNav = [
+const adminNav = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Workspaces', href: '/dashboard/workspaces', icon: FolderGit2 },
   { name: 'Projects & Tasks', href: '/dashboard/projects', icon: KanbanSquare },
   { name: 'Team Members', href: '/dashboard/team', icon: Users },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+];
+
+const employeeNav = [
+  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'My Workspaces', href: '/dashboard/workspaces', icon: FolderGit2 },
+  { name: 'My Projects & Tasks', href: '/dashboard/projects', icon: KanbanSquare },
+  { name: 'My Activity', href: '/dashboard/activity', icon: BarChart3 },
 ];
 
 const systemNav = [{ name: 'Settings', href: '/dashboard/settings', icon: Settings }];
@@ -39,14 +46,14 @@ function NavLink({ item }) {
     <Link
       href={item.href}
       aria-current={isActive ? 'page' : undefined}
-      className={`group flex h-9 items-center gap-3 rounded-lg px-3 text-[13px] font-medium transition-colors duration-150 ease-out ${
+      className={`group flex h-11 items-center gap-3.5 rounded-lg px-4 text-[15px] font-medium transition-colors duration-150 ease-out ${
         isActive
           ? 'bg-accent/10 text-ink'
           : 'text-ink-secondary hover:bg-white/[0.04] hover:text-ink'
       }`}
     >
       <Icon
-        className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
+        className={`h-5 w-5 shrink-0 transition-colors duration-150 ${
           isActive ? 'text-accent-bright' : 'text-ink-muted group-hover:text-ink-secondary'
         }`}
       />
@@ -57,7 +64,8 @@ function NavLink({ item }) {
 
 export default function Sidebar({ open, onClose }) {
   const pathname = usePathname();
-  const { user, workspaces, currentWorkspace, switchWorkspace, refreshWorkspaces } = useWorkspace();
+  const { user, isCompanyAdmin, workspaces, currentWorkspace, switchWorkspace, refreshWorkspaces } =
+    useWorkspace();
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -138,17 +146,17 @@ export default function Sidebar({ open, onClose }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col border-r border-line bg-sidebar transition-transform duration-200 ease-out lg:sticky lg:top-16 lg:z-20 lg:h-[calc(100vh-4rem)] lg:w-64 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[304px] flex-col border-r border-line bg-sidebar transition-transform duration-200 ease-out lg:sticky lg:top-20 lg:z-20 lg:h-[calc(100vh-5rem)] lg:w-80 lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* COMPANY — workspace selector */}
-        <div className="border-b border-line p-3">
+        <div className="border-b border-line p-4">
           <div className="flex items-center justify-between px-2 pb-2">
             <span className="eyebrow truncate text-ink-muted">{user?.companyName || 'Company'}</span>
             <button
               onClick={onClose}
-              className="-mr-1 flex h-7 w-7 items-center justify-center rounded-md text-ink-muted hover:bg-white/[0.04] hover:text-ink lg:hidden"
+              className="-mr-1 flex h-7 w-7 items-center justify-center rounded-md text-ink-muted hover:bg-hover hover:text-ink lg:hidden"
               aria-label="Close navigation"
             >
               <X className="h-4 w-4" />
@@ -163,28 +171,29 @@ export default function Sidebar({ open, onClose }) {
               }}
               aria-expanded={switcherOpen}
               aria-haspopup="listbox"
-              className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors duration-150 ${
+              className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors duration-150 ${
                 switcherOpen ? 'bg-white/[0.04]' : 'hover:bg-white/[0.04]'
               }`}
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-accent/20 bg-accent/10 text-[11px] font-semibold text-accent-bright">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-accent/20 bg-accent/10 text-[13px] font-semibold text-accent-bright">
                 {(currentWorkspace?.name || 'W').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium text-ink">
+                <div className="truncate text-[15px] font-medium text-ink">
                   {currentWorkspace?.name || 'No workspace'}
                 </div>
-                <div className="truncate text-[11px] capitalize text-ink-muted">
+                <div className="truncate text-[13px] capitalize text-ink-muted">
                   {currentWorkspace?.role || 'member'}
                 </div>
               </div>
-              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
+              <ChevronsUpDown className="h-4.5 w-4.5 shrink-0 text-ink-muted" />
             </button>
 
             {switcherOpen && (
               <div
                 className="panel-pop absolute left-0 right-0 top-full z-50 mt-1.5 p-1.5 animate-dropdown"
                 role="listbox"
+                aria-label={isCompanyAdmin ? 'Company workspaces' : 'My workspaces'}
               >
                 <div className="relative mb-1">
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
@@ -194,9 +203,13 @@ export default function Sidebar({ open, onClose }) {
                     value={wsQuery}
                     onChange={(e) => setWsQuery(e.target.value)}
                     placeholder="Search workspaces…"
-                    className="h-8 w-full rounded-md border border-line bg-sidebar pl-8 pr-2.5 text-xs text-ink placeholder:text-ink-muted focus:border-accent/50 focus:outline-none"
+                    className="h-10 w-full rounded-md border border-line bg-sidebar pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:border-accent/50 focus:outline-none"
                   />
                 </div>
+
+                <p className="eyebrow px-2.5 py-1 text-ink-muted">
+                  {isCompanyAdmin ? 'Company workspaces' : 'My workspaces'}
+                </p>
 
                 <div className="max-h-56 overflow-y-auto py-0.5">
                   {filteredWorkspaces.length === 0 ? (
@@ -222,7 +235,7 @@ export default function Sidebar({ open, onClose }) {
                           }`}
                         >
                           <div
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold ${
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border text-[13px] font-semibold ${
                               active
                                 ? 'border-accent/20 bg-accent/10 text-accent-bright'
                                 : 'border-line bg-surface text-ink-secondary'
@@ -231,8 +244,8 @@ export default function Sidebar({ open, onClose }) {
                             {(w.name || 'W').charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-[13px] font-medium text-ink">{w.name}</div>
-                            <div className="truncate text-[11px] capitalize text-ink-muted">
+                            <div className="truncate text-[15px] font-medium text-ink">{w.name}</div>
+                            <div className="truncate text-[13px] capitalize text-ink-muted">
                               {w.role || 'editor'}
                             </div>
                           </div>
@@ -244,15 +257,22 @@ export default function Sidebar({ open, onClose }) {
                 </div>
 
                 <div className="mt-1 border-t border-line pt-1">
-                  <button
-                    onClick={() => {
-                      setSwitcherOpen(false);
-                      setCreateOpen(true);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-accent-bright transition-colors duration-150 hover:bg-accent/10"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Create workspace
-                  </button>
+                  {isCompanyAdmin && (
+                    <button
+                      onClick={() => {
+                        setSwitcherOpen(false);
+                        setCreateOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-accent-bright transition-colors duration-150 hover:bg-accent/10"
+                    >
+                      <Plus className="h-4 w-4" /> Create workspace
+                    </button>
+                  )}
+                  {!isCompanyAdmin && workspaces.length === 0 && (
+                    <p className="px-2.5 py-2 text-[11px] leading-relaxed text-ink-muted">
+                      No workspaces yet. You’ll see them here once an administrator invites you.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -260,18 +280,18 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         {/* MAIN + SYSTEM navigation */}
-        <nav className="flex-1 overflow-y-auto p-3">
+        <nav className="flex-1 overflow-y-auto p-4">
           <div>
-            <p className="eyebrow mb-1.5 px-3 text-ink-muted">Main</p>
-            <div className="space-y-0.5">
-              {mainNav.map((item) => (
+            <p className="eyebrow mb-2 px-4 text-ink-muted">Main</p>
+            <div className="space-y-1.5">
+              {(isCompanyAdmin ? adminNav : employeeNav).map((item) => (
                 <NavLink key={item.href} item={item} />
               ))}
             </div>
           </div>
-          <div className="mt-6">
-            <p className="eyebrow mb-1.5 px-3 text-ink-muted">System</p>
-            <div className="space-y-0.5">
+          <div className="mt-7">
+            <p className="eyebrow mb-2 px-4 text-ink-muted">System</p>
+            <div className="space-y-1.5">
               {systemNav.map((item) => (
                 <NavLink key={item.href} item={item} />
               ))}
@@ -279,23 +299,25 @@ export default function Sidebar({ open, onClose }) {
           </div>
         </nav>
 
-        {/* Bottom utility */}
-        <div className="border-t border-line p-3">
-          <button
-            onClick={handleSeedDemo}
-            disabled={seeding}
-            title="Create sample workspaces to test per-workspace permissions"
-            className="flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-white/[0.04] hover:text-ink-secondary disabled:opacity-50"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {seeding ? 'Seeding…' : 'Seed demo data'}
-          </button>
-          {seedMessage && (
-            <p className="mt-1.5 px-2.5 text-[11px] font-medium text-success-text animate-fadeIn">
-              {seedMessage}
-            </p>
-          )}
-        </div>
+        {/* Bottom utility (admin demo tooling) */}
+        {isCompanyAdmin && (
+          <div className="border-t border-line p-4">
+            <button
+              onClick={handleSeedDemo}
+              disabled={seeding}
+              title="Create sample workspaces to test per-workspace permissions"
+              className="flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-hover hover:text-ink-secondary disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" />
+              {seeding ? 'Seeding…' : 'Seed demo data'}
+            </button>
+            {seedMessage && (
+              <p className="mt-1.5 px-2.5 text-[11px] font-medium text-success-text animate-fadeIn">
+                {seedMessage}
+              </p>
+            )}
+          </div>
+        )}
       </aside>
 
       <CreateWorkspaceModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />

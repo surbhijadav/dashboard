@@ -8,6 +8,7 @@ const WorkspaceContext = createContext();
 export function WorkspaceProvider({ children }) {
   const [user, setUser] = useState(null);
   const [workspaces, setWorkspaces] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -20,17 +21,16 @@ export function WorkspaceProvider({ children }) {
         const data = await res.json();
         setUser(data.user);
         setWorkspaces(data.workspaces || []);
+        setInvitations(data.invitations || []);
 
-        if (data.workspaces && data.workspaces.length > 0) {
-          const savedId = data.user.currentWorkspace;
-          const selected = data.workspaces.find((w) => w.id === savedId) || data.workspaces[0];
-          setCurrentWorkspace(selected);
-        } else {
-          setCurrentWorkspace(null);
-        }
+        const current = (data.workspaces || []).find(
+          (w) => w.id.toString() === data.user.currentWorkspace?.toString()
+        );
+        setCurrentWorkspace(current || (data.workspaces || [])[0] || null);
       } else {
         setUser(null);
         setWorkspaces([]);
+        setInvitations([]);
         setCurrentWorkspace(null);
         if (pathname.startsWith('/dashboard')) {
           router.push('/login');
@@ -48,26 +48,23 @@ export function WorkspaceProvider({ children }) {
     (async () => {
       try {
         const res = await fetch('/api/auth/me');
+        if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
-          if (!cancelled) {
-            setUser(data.user);
-            setWorkspaces(data.workspaces || []);
+          if (cancelled) return;
+          setUser(data.user);
+          setWorkspaces(data.workspaces || []);
+          setInvitations(data.invitations || []);
 
-            if (data.workspaces && data.workspaces.length > 0) {
-              const savedId = data.user.currentWorkspace;
-              const selected = data.workspaces.find((w) => w.id === savedId) || data.workspaces[0];
-              setCurrentWorkspace(selected);
-            } else {
-              setCurrentWorkspace(null);
-            }
-          }
+          const current = (data.workspaces || []).find(
+            (w) => w.id.toString() === data.user.currentWorkspace?.toString()
+          );
+          setCurrentWorkspace(current || (data.workspaces || [])[0] || null);
         } else {
-          if (!cancelled) {
-            setUser(null);
-            setWorkspaces([]);
-            setCurrentWorkspace(null);
-          }
+          setUser(null);
+          setWorkspaces([]);
+          setInvitations([]);
+          setCurrentWorkspace(null);
           if (pathname.startsWith('/dashboard')) {
             router.push('/login');
           }
@@ -106,12 +103,15 @@ export function WorkspaceProvider({ children }) {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
       setWorkspaces([]);
+      setInvitations([]);
       setCurrentWorkspace(null);
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
+
+  const isCompanyAdmin = user?.companyRole === 'admin';
 
   return (
     <WorkspaceContext.Provider
@@ -120,12 +120,15 @@ export function WorkspaceProvider({ children }) {
         setUser,
         workspaces,
         setWorkspaces,
+        invitations,
+        setInvitations,
         currentWorkspace,
         setCurrentWorkspace,
         switchWorkspace,
         refreshWorkspaces: fetchAuthAndWorkspaces,
         logout,
         loading,
+        isCompanyAdmin,
       }}
     >
       {children}

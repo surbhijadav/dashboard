@@ -14,14 +14,17 @@ export async function POST() {
     await dbConnect();
     const hashedPassword = await hashPassword('password123');
 
-    // 1. Create Company 1
+    // 1. Create Company 1 Admin
     let admin = await User.findOne({ email: 'admin@company1.com' });
     if (!admin) {
       admin = await User.create({
         name: 'Sarah Connor (Company Admin)',
         email: 'admin@company1.com',
         password: hashedPassword,
+        companyRole: 'admin',
       });
+    } else if (admin.companyRole !== 'admin') {
+      admin.companyRole = 'admin';
     }
 
     let company1 = await Company.findOne({ name: 'Acme Technologies' });
@@ -75,7 +78,7 @@ export async function POST() {
     admin.currentWorkspace = wsMobile._id;
     await admin.save();
 
-    // 5. Create Restricted User "Alex (Developer)"
+    // 5. Create Restricted Employee "Alex (Developer)"
     let alex = await User.findOne({ email: 'alex@company1.com' });
     if (!alex) {
       alex = await User.create({
@@ -83,6 +86,7 @@ export async function POST() {
         email: 'alex@company1.com',
         password: hashedPassword,
         company: company1._id,
+        companyRole: 'employee',
         currentWorkspace: wsMobile._id,
       });
     }
@@ -96,6 +100,30 @@ export async function POST() {
 
     // Remove Alex from Workspace Beta if present
     await WorkspaceMember.deleteOne({ workspace: wsSecurity._id, user: alex._id });
+
+    // 5b. Create "Maria" with a PENDING invitation to Workspace Alpha
+    // (demonstrates the invitation accept/decline flow — she has NO access until she accepts)
+    let maria = await User.findOne({ email: 'maria@company1.com' });
+    if (!maria) {
+      maria = await User.create({
+        name: 'Maria Chen (Designer)',
+        email: 'maria@company1.com',
+        password: hashedPassword,
+        company: company1._id,
+        companyRole: 'employee',
+      });
+    }
+
+    const mariaExisting = await WorkspaceMember.findOne({ workspace: wsMobile._id, user: maria._id });
+    if (!mariaExisting) {
+      await WorkspaceMember.create({
+        workspace: wsMobile._id,
+        company: company1._id,
+        user: maria._id,
+        role: 'viewer',
+        status: 'pending',
+      });
+    }
 
     // 6. Populate Workspace Alpha Tasks
     const projAlpha = await Project.create({
@@ -159,6 +187,11 @@ export async function POST() {
         email: 'alex@company1.com',
         password: 'password123',
         accessibleWorkspaces: ['Workspace Alpha - Mobile App ONLY (Workspace Beta is hidden & forbidden)'],
+      },
+      pendingInvitationAccount: {
+        email: 'maria@company1.com',
+        password: 'password123',
+        note: 'Has a PENDING invitation to Workspace Alpha — no access until she accepts it from her dashboard.',
       },
     });
   } catch (error) {

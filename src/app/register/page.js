@@ -42,11 +42,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-app relative overflow-hidden">
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl animate-pulse-glow" />
-      <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl animate-pulse-glow" />
-
-      <div className="w-full max-w-md p-8 glass-panel rounded-3xl border border-slate-800 shadow-2xl relative z-10">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-app">
+      <div className="w-full max-w-md p-8 glass-panel rounded-2xl shadow-2xl">
         <div className="text-center mb-6">
           <div className="w-14 h-14 rounded-xl bg-accent mx-auto flex items-center justify-center text-white mb-3 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <Building2 className="w-7 h-7" />

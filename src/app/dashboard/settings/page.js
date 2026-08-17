@@ -8,14 +8,14 @@ export default function SettingsPage() {
   const { user, currentWorkspace } = useWorkspace();
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-8 animate-fadeIn">
       {/* Header */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">
+        <div className="flex items-center gap-2 text-blue-400 text-[13px] font-bold uppercase tracking-wider mb-1">
           <Settings className="w-4 h-4" /> Workspace & Account Settings
         </div>
-        <h1 className="text-2xl font-extrabold text-white">Settings</h1>
-        <p className="text-xs text-slate-400">
+        <h1 className="text-[34px] font-extrabold text-white">Settings</h1>
+        <p className="mt-1 text-[17px] text-ink-secondary">
           Manage workspace profile, member roles, and multi-tenant security
         </p>
       </div>
@@ -23,13 +23,13 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Company Workspace Configuration */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="p-6 glass-card rounded-3xl border border-slate-800 space-y-4">
+          <div className="p-7 glass-card rounded-3xl border border-slate-800 space-y-4">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
               <Building2 className="w-5 h-5 text-blue-400" />
-              <h3 className="text-base font-bold text-white">Workspace Details</h3>
+              <h3 className="text-lg font-bold text-white">Workspace Details</h3>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-[15px]">
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Workspace Name</label>
                 <input
@@ -68,13 +68,13 @@ export default function SettingsPage() {
           </div>
 
           {/* User Account Profile */}
-          <div className="p-6 glass-card rounded-3xl border border-slate-800 space-y-4">
+          <div className="p-7 glass-card rounded-3xl border border-slate-800 space-y-4">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
               <User className="w-5 h-5 text-accent-bright" />
-              <h3 className="text-base font-bold text-white">User Account</h3>
+              <h3 className="text-lg font-bold text-white">User Account</h3>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-[15px]">
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Name</label>
                 <input
@@ -99,15 +99,15 @@ export default function SettingsPage() {
         </div>
 
         {/* Right Info Box */}
-        <div className="p-6 glass-card rounded-3xl border border-slate-800 space-y-4">
+        <div className="p-7 glass-card rounded-3xl border border-slate-800 space-y-4">
           <div className="w-10 h-10 rounded-lg bg-accent/10 text-accent-bright flex items-center justify-center border border-accent/20">
             <Layers className="w-5 h-5" />
           </div>
-          <h4 className="text-sm font-semibold text-white">Multi-Tenant Isolation Architecture</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <h4 className="text-base font-semibold text-white">Multi-Tenant Isolation Architecture</h4>
+          <p className="text-sm text-slate-400 leading-relaxed">
             Every workspace in this application functions as a partitioned tenant. All API endpoints automatically scope Mongo queries by <code className="text-accent-bright font-mono">workspaceId</code>.
           </p>
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[13px] text-slate-300 space-y-1">
             <div className="font-semibold text-emerald-400 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" /> Security Verified
             </div>
