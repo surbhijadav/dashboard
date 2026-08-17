@@ -1,9 +1,30 @@
 // Email service abstraction.
-// Provider: Resend (via plain fetch — zero dependencies) when RESEND_API_KEY is set.
-// Otherwise a console transport is used in development so the invitation link
-// is still deliverable without configuring a provider.
+// Provider order:
+//   1. SMTP (nodemailer) when SMTP_HOST/SMTP_USER/SMTP_PASS are set
+//   2. Resend (via plain fetch) when RESEND_API_KEY is set
+//   3. Console transport in development so the invitation link
+//      is still deliverable without configuring a provider.
+
+import nodemailer from 'nodemailer';
 
 const EMAIL_FROM = process.env.EMAIL_FROM || 'Workspace Dashboard <onboarding@resend.dev>';
+
+function smtpConfigured() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+function getSmtpTransport() {
+  const port = Number(process.env.SMTP_PORT || 587);
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
 
 function roleLabel(role) {
   return { admin: 'Admin', editor: 'Editor', viewer: 'Viewer' }[role] || 'Member';
@@ -78,6 +99,22 @@ export async function sendInvitationEmail({ to, inviterName, companyName, worksp
   const subject = `You're invited to join ${companyName} on Workspace Dashboard`;
   const html = renderInvitationEmail({ inviterName, companyName, workspaceName, role, acceptUrl, expiresAt });
   const text = `Hello,\n\n${inviterName} has invited you to join ${companyName}.\n\nWorkspace: ${workspaceName}\nRole: ${roleLabel(role)}\n\nAccept your invitation:\n${acceptUrl}\n\nThis invitation expires on ${formatDate(expiresAt)}.\n\nIf you were not expecting this invitation, you can safely ignore this email.`;
+
+  if (smtpConfigured()) {
+    try {
+      await getSmtpTransport().sendMail({
+        from: EMAIL_FROM,
+        to,
+        subject,
+        html,
+        text,
+      });
+      return { delivered: true, dev: false };
+    } catch (err) {
+      console.error('Invitation email delivery failed (SMTP):', err.message);
+      return { delivered: false, dev: false };
+    }
+  }
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
