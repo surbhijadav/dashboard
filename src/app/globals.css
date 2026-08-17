@@ -1,0 +1,309 @@
+@import "tailwindcss";
+
+@theme {
+  /* Typography */
+  --font-sans: var(--font-inter, "Inter"), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Surfaces */
+  --color-app: #080b12; /* primary background */
+  --color-sidebar: #0c1018; /* sidebar */
+  --color-surface: #111722; /* surface */
+  --color-elevated: #151d2a; /* elevated surface */
+
+  /* Borders */
+  --color-line: #202938;
+  --color-line-bright: #2a3547;
+
+  /* Brand / actions */
+  --color-accent: #3b82f6;
+  --color-accent-bright: #60a5fa;
+  --color-accent-hover: #4c8df6;
+  --color-accent-active: #2a6de8;
+
+  /* Text */
+  --color-ink: #f8fafc;
+  --color-ink-secondary: #94a3b8;
+  --color-ink-muted: #64748b;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-success-text: #86efac;
+  --color-warning: #f59e0b;
+  --color-warning-text: #fcd34d;
+  --color-danger: #ef4444;
+  --color-danger-text: #fca5a5;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-app);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Keyboard focus visibility (preflight removes outlines) */
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, transparent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--color-ink);
+}
+
+/* =========================================================
+   Surface aliases — kept as classes so every existing
+   surface inherits the refined system without rewriting it.
+   Unlayered on purpose: they set the base look for surfaces.
+   ========================================================= */
+.glass-panel {
+  background-color: var(--color-elevated);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.glass-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  transition: background-color 0.2s ease-out, border-color 0.2s ease-out;
+}
+
+.glass-card:hover {
+  background-color: var(--color-elevated);
+  border-color: var(--color-line-bright);
+}
+
+.glass-input {
+  background-color: var(--color-sidebar);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  color: var(--color-ink);
+  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.glass-input::placeholder {
+  color: var(--color-ink-muted);
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+/* Restrained single-hue accent text */
+.gradient-text,
+.gradient-text-emerald {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--color-accent-bright);
+}
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn-primary:active {
+  background-color: var(--color-accent-active);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background-color: var(--color-elevated);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.btn-secondary:hover {
+  background-color: #1a2332;
+  border-color: var(--color-line-bright);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--color-ink);
+}
+
+/* =========================================================
+   Small primitives
+   ========================================================= */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-sidebar);
+  color: var(--color-ink-muted);
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.panel-pop {
+  background-color: var(--color-elevated);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* =========================================================
+   Motion — subtle, ease-out, fast
+   ========================================================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+.animate-page {
+  animation: fadeUp 0.35s ease-out both;
+}
+
+.animate-dropdown {
+  animation: dropIn 0.15s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-page,
+  .animate-dropdown {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   Scrollbar — quiet
+   ========================================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-line-bright);
+  background-clip: padding-box;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
